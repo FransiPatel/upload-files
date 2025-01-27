@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+
+    form {
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      max-width: 400px;
+      background-color: #f9f9f9;
+    }
+
+    input[type="file"] {
+      margin: 10px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .response {
+      margin-top: 20px;
+      font-size: 16px;
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .delete-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background-color: #d9534f;
+    }
+  </style>
+</head>
+<body>
+  <h1>Upload a File</h1>
+  <form id="uploadForm" enctype="multipart/form-data" method="POST">
+    <label for="fileInput">Choose a file:</label><br>
+    <input type="file" id="fileInput" name="file" accept="image/*,video/*" required><br>
+    <button type="submit">Upload</button>
+  </form>
+
+  <div class="response" id="response"></div>
+
+  <div id="fileDetails" style="display: none;">
+    <h2>File uploaded successfully!</h2>
+    <p id="uploadedFileName"></p>
+    <button class="delete-btn" id="deleteFileBtn">Delete File</button>
+  </div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const responseDiv = document.getElementById("response");
+    const fileDetailsDiv = document.getElementById("fileDetails");
+    const fileNameP = document.getElementById("uploadedFileName");
+    const deleteFileBtn = document.getElementById("deleteFileBtn");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const fileInput = document.getElementById("fileInput");
+      const file = fileInput.files[0];
+
+      if (!file) {
+        responseDiv.textContent = "Please select a file!";
+        responseDiv.className = "error";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          responseDiv.textContent = `Success: ${result.message}`;
+          responseDiv.className = "response";
+          fileDetailsDiv.style.display = "block";
+          fileNameP.textContent = `Uploaded File: ${result.file.filename}`;
+          deleteFileBtn.setAttribute("data-file", result.file.filename);
+        } else {
+          responseDiv.textContent = `Error: ${result.message}`;
+          responseDiv.className = "error";
+        }
+      } catch (err) {
+        responseDiv.textContent = `Error: ${err.message}`;
+        responseDiv.className = "error";
+      }
+    });
+
+    // Delete file when the delete button is clicked
+    deleteFileBtn.addEventListener("click", async () => {
+      const fileName = deleteFileBtn.getAttribute("data-file");
+
+      try {
+        const response = await fetch("/delete", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ fileName }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          responseDiv.textContent = `Success: ${result.message}`;
+          responseDiv.className = "response";
+          fileDetailsDiv.style.display = "none";  // Hide file details after deletion
+        } else {
+          responseDiv.textContent = `Error: ${result.message}`;
+          responseDiv.className = "error";
+        }
+      } catch (err) {
+        responseDiv.textContent = `Error: ${err.message}`;
+        responseDiv.className = "error";
+      }
+    });
+  </script>
+</body>
+</html>
